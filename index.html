@@ -309,16 +309,33 @@
         <div class="banner">Download Videos Instantly</div>
 
         <div class="platforms">
-            <span class="platform-badge"><span class="platform-icon">▶️</span><span>YouTube</span></span>
-            <span class="platform-badge"><span class="platform-icon">🎵</span><span>TikTok</span></span>
-            <span class="platform-badge"><span class="platform-icon">👍</span><span>Facebook</span></span>
-            <span class="platform-badge"><span class="platform-icon">📸</span><span>Instagram</span></span>
+            <span class="platform-badge">
+                <span class="platform-icon">▶️</span>
+                <span>YouTube</span>
+            </span>
+            <span class="platform-badge">
+                <span class="platform-icon">🎵</span>
+                <span>TikTok</span>
+            </span>
+            <span class="platform-badge">
+                <span class="platform-icon">👍</span>
+                <span>Facebook</span>
+            </span>
+            <span class="platform-badge">
+                <span class="platform-icon">📸</span>
+                <span>Instagram</span>
+            </span>
         </div>
 
         <div class="input-group">
             <label for="urlInput">Paste your video link:</label>
             <div class="input-wrapper">
-                <input type="text" id="urlInput" placeholder="Paste link here..." autocomplete="off">
+                <input 
+                    type="text" 
+                    id="urlInput" 
+                    placeholder="Paste link here..."
+                    autocomplete="off"
+                >
                 <button class="btn" id="downloadBtn">Download</button>
             </div>
         </div>
@@ -341,7 +358,7 @@
     </div>
 
     <script>
-        // API ENDPOINTS - WORKING ENDPOINTS WITH KEYS INCLUDED
+        // ============ API ENDPOINTS WITH WORKING KEYS ============
         const API_CONFIGS = {
             tiktok: {
                 apis: [
@@ -377,7 +394,7 @@
             }
         };
 
-        // HELPER FUNCTIONS
+        // ============ PLATFORM DETECTION ============
         function getPlatform(url) {
             if (url.includes('tiktok') || url.includes('douyin') || url.includes('vt.tiktok')) return 'tiktok';
             if (url.includes('youtube') || url.includes('youtu.be')) return 'youtube';
@@ -386,6 +403,7 @@
             return null;
         }
 
+        // ============ VIDEO URL EXTRACTION ============
         function extractVideoUrl(data) {
             if (!data) return null;
             if (typeof data === 'string') {
@@ -432,6 +450,7 @@
             return null;
         }
 
+        // ============ STATUS DISPLAY ============
         function showStatus(message, type = 'loading') {
             const statusMsg = document.getElementById('statusMessage');
             if (type === 'loading') {
@@ -446,22 +465,30 @@
             }
         }
 
+        // ============ API FETCH WITH SERVER PROXY ============
         async function tryApi(apiUrl, timeout = 8000) {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeout);
-                const response = await fetch(apiUrl, {
+                // Use server proxy to avoid CORS issues
+                const proxyUrl = '/api/proxy?url=' + encodeURIComponent(apiUrl);
+                console.log('Proxy request to:', proxyUrl.substring(0, 100) + '...');
+                const response = await fetch(proxyUrl, {
                     signal: controller.signal,
                     headers: { 'Accept': 'application/json' }
                 });
                 clearTimeout(timeoutId);
                 if (!response.ok) throw new Error('HTTP ' + response.status);
-                return await response.json();
+                const data = await response.json();
+                console.log('Proxy response:', data);
+                return data;
             } catch (error) {
+                console.error('Proxy error:', error.message);
                 throw error;
             }
         }
 
+        // ============ MAIN DOWNLOAD FUNCTION ============
         async function downloadVideo(url) {
             const result = document.getElementById('result');
             const preview = document.getElementById('preview');
@@ -480,6 +507,7 @@
                 let videoUrl = null;
                 let lastError = null;
 
+                // Try all available APIs
                 for (let i = 0; i < config.apis.length; i++) {
                     try {
                         showStatus('Trying ' + config.names[i] + '...', 'loading');
@@ -500,6 +528,7 @@
                     throw new Error(lastError ? lastError.message : 'Unable to extract video URL. Try another link.');
                 }
 
+                // Set video preview and download link
                 preview.src = videoUrl;
                 preview.style.display = 'block';
                 dlLink.href = videoUrl;
@@ -507,6 +536,7 @@
                 
                 showStatus('Video ready to download!', 'success');
 
+                // Scroll to video
                 setTimeout(() => {
                     const card = document.querySelector('.download-card');
                     if (card) card.scrollIntoView({ behavior: 'smooth' });
@@ -525,7 +555,7 @@
             }
         }
 
-        // EVENT LISTENERS
+        // ============ EVENT LISTENERS ============
         document.getElementById('downloadBtn').addEventListener('click', async () => {
             const url = document.getElementById('urlInput').value.trim();
             if (!url) {
